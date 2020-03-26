@@ -18,4 +18,6 @@ MTI0MTMyMDI1Mg==
 <br/>
 Friends:  
 [Eli0t](http://ybm911.work/)  
-[EDS](http://www.ericdshen.com/)
+[EDS](http://www.ericdshen.com/)  
+[Migraine](https://migraine-sudo.github.io)  
+[Root](https://shawroot.cc/)
