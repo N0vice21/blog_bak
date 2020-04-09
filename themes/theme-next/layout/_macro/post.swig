@@ -73,6 +73,11 @@
                 {{ date(post.date, config.date_format) }}
               </time>
             {% endif %}
+            {% if post.top %}
+            <i class="fa fa-thumb-tack"></i>
+            <font color=7D26CD>置顶</font>
+            <span class="post-meta-divider">|</span>
+            {% endif %}
 
             {% if theme.post_meta.created_at and theme.post_meta.updated_at %}
               <span class="post-meta-divider">|</span>

