@@ -13,7 +13,7 @@ timezone: ''
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: https://n0vice.gitee.io
+url: https://n0vice.top
 root: /
 permalink: :year/:month/:day/:title/
 permalink_defaults:
@@ -97,7 +97,9 @@ theme: theme-next
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: https://gitee.com/n0vice/N0vice.git
+  repo: 
+    gitee: https://gitee.com/n0vice/N0vice.git
+    git1: root@47.115.24.144:/var/repo/Myblog.git
   branch: master
 
 
