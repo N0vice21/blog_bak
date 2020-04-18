@@ -595,5 +595,9 @@ def exp():
     p.interactive()
 exp()
 ```  
-## 0x17   
+## 0x17  0ctf2017-babyheap  
+https://n0vice.top/2020/04/16/0ctf2017-babyheap  
+## 0x18  wdb2018_guess  
+https://n0vice.top/2020/04/09/Stack-smash  
+## 0x19  
 咕咕咕……  
