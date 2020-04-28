@@ -22,3 +22,6 @@ Friends:
 [EDS](http://www.ericdshen.com/)  
 [Migraine](https://migraine-sudo.github.io)  
 [Root](https://shawroot.cc/)  
+[Lime](http://djstudy.top/)  
+[Mr.Believe](https://mrbelieve128.github.io/)  
+[L0x1c](https://l0x1c.github.io/)
