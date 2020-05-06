@@ -154,8 +154,15 @@ links_icon: link
 links_title: Links
 links_layout: block
 #links_layout: inline
-#links:
-  #Title: http://example.com/
+links:
+  Eli0t: http://ybm911.work/
+  EDS: http://www.ericdshen.com/
+  Migraine: https://migraine-sudo.github.io
+  Root: https://shawroot.cc/
+  Lime: http://djstudy.top/
+  Mr.Believe: https://mrbelieve128.github.io/
+  L0x1c: https://l0x1c.github.io/
+  binlep: http://binlep.top/
 
 # Sidebar Avatar
 # in theme directory(source/images): /images/avatar.gif

