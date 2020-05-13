@@ -1,7 +1,7 @@
 ---
-title: 一道题学习hoouse of force
+title: 一道题学习house of force
 date: 2020-05-9 23:49:56
-tags:
+tags: pwn
 ---
 house of force攻击手段是通过操作top chunk来进行利用的<!--more-->  
 top chunk是作为备用的堆空间，当需要申请chunk时，所有bins中的chunk都满足不了所需的size时，就会从top chunk中切割一块chunk出来返回给用户。  
