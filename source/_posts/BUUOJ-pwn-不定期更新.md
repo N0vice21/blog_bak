@@ -1020,5 +1020,7 @@ def exp():
     p.interactive()
 exp()
 ```  
-## 0x26  
+## 0x26  gyctf_2020_force  
+https://n0vice.top/2020/05/09/%E4%B8%80%E9%81%93%E9%A2%98%E5%AD%A6%E4%B9%A0house-of-force/index.html  
+## 0x27  
 咕咕咕……  
