@@ -3,7 +3,7 @@ title: DASCTF&第三届BJDCTF write up
 date: 2020-05-24 22:21:16
 tags: CTF
 ---
-不愧是BJD，不愧是TaQini，我不配  
+不愧是BJD，不愧是TaQini，我不配  <!--more-->
 ![](1.jpg)
 # Pwn  
 ## TaQini OJ 0  
