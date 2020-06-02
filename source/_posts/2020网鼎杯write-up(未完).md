@@ -89,12 +89,12 @@ exp()
 然后在FRIDA-DEXDump目录下跑main.py脚本，就能dump出一堆dex  
 ![](re2.png)
 大概长这样  
-![(re5.png)
+![](re5.png)
 然后把这些dex用dex2jar工具转成jar，但是可能会出现这样的情况  
 ![](re3.jpg)
 没有关系，一个一个试就行了  
 接着用jd-gui打开，就能看到flag了  
-![](re3.png)
+![](re4.png)
 ```  
 注意：模拟器大部分是x86架构，真机是arm架构，  
 所以我们调试的时候需要用x86架构的server，如果用的arm在模拟器上跑就会报错  
