@@ -99,7 +99,7 @@ deploy:
   type: git
   repo: 
     gitee: https://gitee.com/n0vice/N0vice.git
-    git1: root@47.115.24.144:/var/repo/Myblog.git
+    git1: root@116.62.48.141:/var/repo/Myblog.git
   branch: master
 
 
