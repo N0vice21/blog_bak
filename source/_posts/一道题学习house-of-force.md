@@ -23,7 +23,7 @@ if ((unsigned long) (size) >= (unsigned long) (nb + MINSIZE))
     alloc_perturb(p, bytes);
     return p;
 }
-```  
+```
 👴看不懂，也懒得看，直接解释  
 首先会检查申请的size，top chunk够不够给，如果够，就会把原先top chunk的head，变成新申请的chunk的head，并且以新申请的size为offset，把top chunk推到新的位置  
 house of force就是通过把top chunk推到任意位置，来控制目标内存  
@@ -37,6 +37,7 @@ house of force就是通过把top chunk推到任意位置，来控制目标内存
 只有add一个功能，puts是空壳函数  
 程序在申请chunk后，会打印出chunk的地址，那么我们申请一个大块的空间，系统就会用mmap分配，mmap分配的这块区域在libc下方，偏移是固定的，我们就可以算出libc_base  
 然后不管申请多大的chunk，都能读入0x50，那这里就存在溢出，我们通过这个溢出，把top chunk的size改为0xffffffffffffffff，那我们就可以申请很大的size了，我们申请一个size为malloc_hook何top chunk之间的偏移的chunk，那么就能将top chunk推到malloc_hook附近  
+
 ```python  
 #!/usr/bin/env python
 #coding=utf-8
@@ -99,7 +100,7 @@ def exp():
     #gdb.attach(p)
     p.interactive()
 exp()
-```  
+```
 参考链接:   
 https://bbs.pediy.com/thread-222924.htm  
 https://www.anquanke.com/post/id/175630  

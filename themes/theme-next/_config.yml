@@ -155,7 +155,8 @@ links_title: Links
 links_layout: block
 #links_layout: inline
 links:
-  Eli0t: http://ybm911.work/
+  Keer: http://116.62.48.141:4444/
+  Elli0t: http://ybm911.work/
   EDS: http://www.ericdshen.com/
   Migraine: https://migraine-sudo.github.io
   Root: https://shawroot.cc/
@@ -170,6 +171,7 @@ links:
   penson: https://blog.csdn.net/SopRomeo
   luoluo: http://www.luoluopeach.top/
   lemon: https://www.cnblogs.com/lemon629/
+  5ur4g3r: https://surager.pub/
 
 # Sidebar Avatar
 # in theme directory(source/images): /images/avatar.gif
